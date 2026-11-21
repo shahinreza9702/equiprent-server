@@ -60,7 +60,47 @@ const getMyProfile: RequestHandler = asyncHandler(
   },
 );
 
+// Update authenticated user's profile
+const updateMyProfile: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    // Validate profile update data
+    const validationResult =
+      userValidation.updateProfileSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const message = validationResult.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        message,
+      );
+    }
+
+    // Update profile
+    const user = await usersService.updateMyProfile(
+      req.user.userId,
+      validationResult.data,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Profile updated successfully",
+      data: user,
+    });
+  },
+);
+
 export const usersController = {
   registerUser,
   getMyProfile,
+  updateMyProfile,
 };

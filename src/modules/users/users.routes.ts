@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 
 import { usersController } from "./users.controller.js";
@@ -11,5 +10,8 @@ router.post("/register", usersController.registerUser);
 
 // Get authenticated user's profile
 router.get("/me", authMiddleware, usersController.getMyProfile);
+
+// Update authenticated user's profile
+router.patch("/me", authMiddleware, usersController.updateMyProfile);
 
 export default router;
