@@ -5,6 +5,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import healthRoutes from "./modules/health/health.routes.js";
+import notFound from "./middlewares/not-found.middleware.js";
+import globalErrorHandler from "./middlewares/global-error.middleware.js";
 
 import { env } from "./config/env.js";
 
@@ -41,5 +43,11 @@ app.get("/", (_req, res) => {
     message: "Welcome to EquipRent API",
   });
 });
+
+// Handle undefined routes
+app.use(notFound);
+
+// Handle application errors
+app.use(globalErrorHandler);
 
 export default app;
