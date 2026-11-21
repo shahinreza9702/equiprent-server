@@ -70,6 +70,29 @@ const registerUser = async (payload: RegisterUserInput) => {
   }
 };
 
+
+// Get authenticated user's profile
+const getMyProfile = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(
+      HTTP_STATUS.NOT_FOUND,
+      "User profile not found",
+    );
+  }
+
+  if (user.status !== "active") {
+    throw new ApiError(
+      HTTP_STATUS.FORBIDDEN,
+      "Your account has been blocked",
+    );
+  }
+
+  return user;
+};
+
 export const usersService = {
   registerUser,
+  getMyProfile,
 };
