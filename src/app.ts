@@ -4,7 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import healthRoutes from "./modules/health/health.routes.js";
+import apiRoutes from "./routes/index.js";
 import notFound from "./middlewares/not-found.middleware.js";
 import globalErrorHandler from "./middlewares/global-error.middleware.js";
 
@@ -34,7 +34,7 @@ app.use(cookieParser());
 app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
 
 // API Routes
-app.use("/api/health", healthRoutes);
+app.use("/api", apiRoutes);
 
 // Root route
 app.get("/", (_req, res) => {
