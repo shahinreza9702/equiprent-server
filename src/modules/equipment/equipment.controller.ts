@@ -127,9 +127,57 @@ const getOwnerEquipments: RequestHandler = asyncHandler(
   },
 );
 
+// Update owner's equipment
+const updateEquipment: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    const equipmentId = req.params.id;
+
+    if (typeof equipmentId !== "string") {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Invalid equipment ID",
+      );
+    }
+
+    const validationResult =
+      equipmentValidation.updateEquipmentSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const message = validationResult.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        message,
+      );
+    }
+
+    const equipment = await equipmentService.updateEquipment(
+      req.user.userId,
+      equipmentId,
+      validationResult.data,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Equipment updated successfully",
+      data: equipment,
+    });
+  },
+);
+
 export const equipmentController = {
   createEquipment,
   getAllEquipment,
   getEquipmentById,
   getOwnerEquipments,
+  updateEquipment,
 };

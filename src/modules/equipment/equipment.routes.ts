@@ -25,6 +25,14 @@ router.get(
   equipmentController.getEquipmentById,
 );
 
+// Owner only - Update equipment
+router.patch(
+  "/:id",
+  authMiddleware,
+  authorizeRoles("owner"),
+  equipmentController.updateEquipment,
+);
+
 // Owner only: Create equipment
 router.post(
   "/",

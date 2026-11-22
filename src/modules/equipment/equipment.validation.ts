@@ -65,6 +65,16 @@ const createEquipmentSchema = z
   })
   .strict();
 
+  // Update equipment validation
+const updateEquipmentSchema = createEquipmentSchema
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    {
+      message: "At least one field is required to update equipment",
+    },
+  );
+
 // Equipment listing query validation
 const equipmentQuerySchema = z
   .object({
@@ -99,5 +109,6 @@ const equipmentQuerySchema = z
 // Export validation schemas
 export const equipmentValidation = {
   createEquipmentSchema,
+  updateEquipmentSchema,
   equipmentQuerySchema,
 };

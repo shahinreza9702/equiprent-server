@@ -285,10 +285,65 @@ const getOwnerEquipments = async (
   };
 };
 
+// Update equipment
+const updateEquipment = async (
+  ownerId: string,
+  equipmentId: string,
+  payload: {
+    [K in keyof CreateEquipmentInput]?: CreateEquipmentInput[K] | undefined;
+  },
+) => {
+  if (
+    !mongoose.isValidObjectId(ownerId) ||
+    !mongoose.isValidObjectId(equipmentId)
+  ) {
+    throw new ApiError(
+      HTTP_STATUS.BAD_REQUEST,
+      "Invalid owner or equipment ID",
+    );
+  }
+
+  const owner = await User.findOne({
+    _id: ownerId,
+    role: "owner",
+    status: "active",
+  }).select("_id");
+
+  if (!owner) {
+    throw new ApiError(
+      HTTP_STATUS.FORBIDDEN,
+      "Only active equipment owners can update equipment",
+    );
+  }
+
+  const equipment = await Equipment.findOne({
+    _id: equipmentId,
+    owner: owner._id,
+  });
+
+  if (!equipment) {
+    throw new ApiError(
+      HTTP_STATUS.NOT_FOUND,
+      "Equipment not found",
+    );
+  }
+
+  Object.assign(equipment, payload);
+
+  if (equipment.approvalStatus === "approved") {
+    equipment.approvalStatus = "pending";
+  }
+
+  await equipment.save();
+
+  return equipment;
+};
+
 // Export equipment services
 export const equipmentService = {
   createEquipment,
   getAllEquipment,
   getEquipmentById,
   getOwnerEquipments,
+  updateEquipment,
 };
