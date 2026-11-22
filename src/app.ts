@@ -1,22 +1,25 @@
 
 import express from "express";
 import cors from "cors";
-import helmetModule from "helmet";
+import { createRequire } from "node:module";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+
 import apiRoutes from "./routes/index.js";
 import notFound from "./middlewares/not-found.middleware.js";
 import globalErrorHandler from "./middlewares/global-error.middleware.js";
 
-
 import { env } from "./config/env.js";
 import { connectDatabase } from "./config/database.js";
 
-const app = express();
+// Load Helmet through Node.js CommonJS interoperability
+const require = createRequire(import.meta.url);
 
-const helmet = helmetModule as unknown as (
+const helmet = require("helmet") as (
   options?: Record<string, unknown>,
 ) => import("express").RequestHandler;
+
+const app = express();
 
 // Security middleware
 app.use(helmet());
