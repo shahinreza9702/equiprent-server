@@ -102,6 +102,65 @@ const refreshToken: RequestHandler = asyncHandler(
 );
 
 
+const forgotPassword: RequestHandler = asyncHandler(
+  async (req, res) => {
+    // Validate forgot password data
+    const validationResult =
+      authValidation.forgotPasswordSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const message = validationResult.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        message,
+      );
+    }
+
+    // Request password reset
+    await authService.forgotPassword(validationResult.data);
+
+    // Return a generic response to prevent account enumeration
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message:
+        "If an account exists with this email, a password reset link has been sent.",
+    });
+  },
+);
+
+
+const resetPassword: RequestHandler = asyncHandler(
+  async (req, res) => {
+    // Validate reset password data
+    const validationResult =
+      authValidation.resetPasswordSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const message = validationResult.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        message,
+      );
+    }
+
+    // Reset the user's password
+    await authService.resetPassword(validationResult.data);
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message:
+        "Password reset successful. Please log in with your new password.",
+    });
+  },
+);
+
+
 const logoutUser: RequestHandler = asyncHandler(
   async (req, res) => {
     // Read the current device's refresh token
@@ -128,9 +187,10 @@ const logoutUser: RequestHandler = asyncHandler(
   },
 );
 
-
 export const authController = {
   loginUser,
   refreshToken,
   logoutUser,
+  forgotPassword,
+  resetPassword,
 };

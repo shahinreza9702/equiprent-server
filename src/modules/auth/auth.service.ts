@@ -6,6 +6,12 @@ import RefreshToken from "./refresh-token.model.js";
 
 import ApiError from "../../utils/api-error.js";
 import HTTP_STATUS from "../../constants/http-status.js";
+import PasswordResetToken from "./password-reset-token.model.js";
+
+import { emailService } from "../../services/email.service.js";
+
+import { passwordResetEmailTemplate } from "./password-reset-email.template.js";
+import { env } from "../../config/env.js";
 
 import {
     generateAccessToken,
@@ -13,6 +19,9 @@ import {
     hashRefreshToken,
     getRefreshTokenExpiry,
     verifyRefreshToken,
+    generatePasswordResetToken,
+    hashPasswordResetToken,
+    getPasswordResetTokenExpiry,
 } from "./auth.utils.js";
 
 interface LoginInput {
@@ -261,6 +270,83 @@ const refreshAccessToken = async (rawRefreshToken: string) => {
 };
 
 
+interface ForgotPasswordInput {
+    email: string;
+}
+
+const forgotPassword = async (
+    payload: ForgotPasswordInput,
+): Promise<void> => {
+    // Find an active account using the normalized email
+    const user = await User.findOne({
+        email: payload.email,
+        status: "active",
+    });
+
+    // Do not reveal whether the account exists
+    if (!user) {
+        return;
+    }
+
+    // Invalidate previous unused reset tokens
+    await PasswordResetToken.updateMany(
+        {
+            user: user._id,
+            usedAt: null,
+        },
+        {
+            $set: { usedAt: new Date() },
+        },
+    );
+
+    // Generate a new raw token
+    const rawToken = generatePasswordResetToken();
+
+    // Store only the token hash
+    await PasswordResetToken.create({
+        user: user._id,
+        tokenHash: hashPasswordResetToken(rawToken),
+        expiresAt: getPasswordResetTokenExpiry(),
+    });
+
+    // Build the frontend reset URL
+    const resetUrl =
+        `${env.CLIENT_URL.replace(/\/+$/, "")}/reset-password` +
+        `?token=${encodeURIComponent(rawToken)}`;
+
+    const emailContent = passwordResetEmailTemplate({
+        resetUrl,
+        expiresInMinutes: 15,
+    });
+
+    try {
+        await emailService.sendEmail({
+            to: user.email,
+            subject: "Reset Your EquipRent Password",
+            html: emailContent.html,
+            text: emailContent.text,
+        });
+    } catch (error) {
+        // Invalidate the token if email delivery fails
+        await PasswordResetToken.updateOne(
+            {
+                user: user._id,
+                tokenHash: hashPasswordResetToken(rawToken),
+                usedAt: null,
+            },
+            {
+                $set: { usedAt: new Date() },
+            },
+        );
+
+        // Never log the raw token or reset URL
+        console.error("Password reset email delivery failed");
+        console.error(
+            error instanceof Error ? error.message : "Unknown email error",
+        );
+    }
+};
+
 
 const logoutUser = async (rawRefreshToken?: string) => {
     // Revoke only the current device's refresh-token session
@@ -279,8 +365,108 @@ const logoutUser = async (rawRefreshToken?: string) => {
     }
 };
 
+
+interface ResetPasswordInput {
+    token: string;
+    newPassword: string;
+}
+
+const resetPassword = async (
+    payload: ResetPasswordInput,
+): Promise<void> => {
+    const tokenHash = hashPasswordResetToken(payload.token);
+    const now = new Date();
+
+    const session = await mongoose.startSession();
+
+    try {
+        await session.withTransaction(async () => {
+            // Find and atomically consume a valid reset token
+            const resetToken =
+                await PasswordResetToken.findOneAndUpdate(
+                    {
+                        tokenHash,
+                        usedAt: null,
+                        expiresAt: { $gt: now },
+                    },
+                    {
+                        $set: { usedAt: now },
+                    },
+                    {
+                        returnDocument: "after",
+                        session,
+                    },
+                );
+
+            if (!resetToken) {
+                throw new ApiError(
+                    HTTP_STATUS.BAD_REQUEST,
+                    "Invalid or expired password reset token",
+                );
+            }
+
+            // Verify that the account is still active
+            const user = await User.findById(
+                resetToken.user,
+            ).session(session);
+
+            if (!user || user.status !== "active") {
+                throw new ApiError(
+                    HTTP_STATUS.BAD_REQUEST,
+                    "Unable to reset password for this account",
+                );
+            }
+
+            // Hash the new password
+            const hashedPassword = await bcrypt.hash(
+                payload.newPassword,
+                12,
+            );
+
+            // Update the user's password
+            await User.updateOne(
+                { _id: user._id },
+                {
+                    $set: { password: hashedPassword },
+                },
+                { session },
+            );
+
+            // Revoke all active refresh-token sessions
+            await RefreshToken.updateMany(
+                {
+                    user: user._id,
+                    revokedAt: null,
+                },
+                {
+                    $set: { revokedAt: now },
+                },
+                { session },
+            );
+
+            // Invalidate all other unused reset tokens
+            await PasswordResetToken.updateMany(
+                {
+                    user: user._id,
+                    _id: { $ne: resetToken._id },
+                    usedAt: null,
+                },
+                {
+                    $set: { usedAt: now },
+                },
+                { session },
+            );
+        });
+    } finally {
+        await session.endSession();
+    }
+};
+
+
 export const authService = {
     loginUser,
     refreshAccessToken,
     logoutUser,
+    forgotPassword,
+    resetPassword,
 };

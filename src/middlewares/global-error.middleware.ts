@@ -23,10 +23,18 @@ const globalErrorHandler: ErrorRequestHandler = (
       ? error.statusCode
       : 500;
 
+  const isOperationalError =
+    typeof error === "object" &&
+    error !== null &&
+    "isOperational" in error &&
+    error.isOperational === true;
+
   const message =
-    error instanceof Error
-      ? error.message
-      : "Internal server error";
+    isProduction && (!isOperationalError || statusCode >= 500)
+      ? "Internal server error"
+      : error instanceof Error
+        ? error.message
+        : "Internal server error";
 
   // Log errors outside production
   if (!isProduction) {

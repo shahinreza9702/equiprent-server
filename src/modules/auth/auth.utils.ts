@@ -1,5 +1,9 @@
 
-import { createHash, randomUUID } from "node:crypto";
+import {
+  createHash,
+  randomBytes,
+  randomUUID,
+} from "node:crypto";
 import jwt from "jsonwebtoken";
 
 import { env } from "../../config/env.js";
@@ -83,4 +87,29 @@ export const getRefreshTokenExpiry = (
   }
 
   return new Date(decoded.exp * 1000);
+};
+
+
+const PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 15;
+
+// Generate a cryptographically secure password reset token
+export const generatePasswordResetToken = (): string => {
+  return randomBytes(32).toString("hex");
+};
+
+// Hash password reset token before database storage
+export const hashPasswordResetToken = (
+  token: string,
+): string => {
+  return createHash("sha256")
+    .update(token)
+    .digest("hex");
+};
+
+// Get password reset token expiration date
+export const getPasswordResetTokenExpiry = (): Date => {
+  return new Date(
+    Date.now() +
+      PASSWORD_RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000,
+  );
 };
