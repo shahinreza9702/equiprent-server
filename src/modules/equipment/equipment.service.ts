@@ -35,6 +35,7 @@ interface EquipmentQuery {
   rentalType?: IEquipment["rentalType"] | undefined;
   minPrice?: number | undefined;
   maxPrice?: number | undefined;
+  sort?: "newest" | "price-asc" | "price-desc" | undefined;
 }
 
 // Create equipment
@@ -72,6 +73,14 @@ const getAllEquipment = async (query: EquipmentQuery = {}) => {
   const page = Math.max(1, query.page ?? 1);
   const limit = Math.min(50, Math.max(1, query.limit ?? 12));
   const skip = (page - 1) * limit;
+
+  const sortOptions = {
+    newest: { createdAt: -1 },
+    "price-asc": { rentalPrice: 1 },
+    "price-desc": { rentalPrice: -1 },
+  } as const;
+
+  const sort = sortOptions[query.sort ?? "newest"];
 
   const matchFilter: QueryFilter<IEquipment> = {
     approvalStatus: "approved",
@@ -164,11 +173,7 @@ const getAllEquipment = async (query: EquipmentQuery = {}) => {
         },
       },
     },
-    {
-      $sort: {
-        createdAt: -1,
-      },
-    },
+    { $sort: sort },
     {
       $facet: {
         equipments: [

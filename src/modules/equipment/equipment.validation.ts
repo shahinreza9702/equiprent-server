@@ -65,7 +65,7 @@ const createEquipmentSchema = z
   })
   .strict();
 
-  // Update equipment validation
+// Update equipment validation
 const updateEquipmentSchema = createEquipmentSchema
   .partial()
   .refine(
@@ -93,6 +93,10 @@ const equipmentQuerySchema = z
     minPrice: z.coerce.number().min(0).optional(),
 
     maxPrice: z.coerce.number().min(0).optional(),
+    
+    sort: z
+      .enum(["newest", "price-asc", "price-desc"])
+      .default("newest"),
   })
   .strict()
   .refine(
