@@ -105,8 +105,31 @@ const getEquipmentById: RequestHandler = asyncHandler(
   },
 );
 
+// Get owner's equipment
+const getOwnerEquipments: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    const result = await equipmentService.getOwnerEquipments(
+      req.user.userId,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Your equipment retrieved successfully",
+      data: result,
+    });
+  },
+);
+
 export const equipmentController = {
   createEquipment,
   getAllEquipment,
   getEquipmentById,
+  getOwnerEquipments,
 };

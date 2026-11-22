@@ -244,9 +244,51 @@ const getEquipmentById = async (equipmentId: string) => {
   return equipment;
 };
 
+// Get all equipment belonging to an owner
+const getOwnerEquipments = async (
+  ownerId: string,
+  query: EquipmentQuery = {},
+) => {
+  if (!mongoose.isValidObjectId(ownerId)) {
+    throw new ApiError(
+      HTTP_STATUS.UNAUTHORIZED,
+      "Invalid authenticated user",
+    );
+  }
+
+  const page = Math.max(1, query.page ?? 1);
+  const limit = Math.min(50, Math.max(1, query.limit ?? 12));
+  const skip = (page - 1) * limit;
+
+  const filter: QueryFilter<IEquipment> = {
+    owner: new mongoose.Types.ObjectId(ownerId),
+  };
+
+  const [equipments, total] = await Promise.all([
+    Equipment.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+
+    Equipment.countDocuments(filter),
+  ]);
+
+  return {
+    equipments,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 // Export equipment services
 export const equipmentService = {
   createEquipment,
   getAllEquipment,
   getEquipmentById,
+  getOwnerEquipments,
 };
