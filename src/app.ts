@@ -8,7 +8,9 @@ import apiRoutes from "./routes/index.js";
 import notFound from "./middlewares/not-found.middleware.js";
 import globalErrorHandler from "./middlewares/global-error.middleware.js";
 
+
 import { env } from "./config/env.js";
+import { connectDatabase } from "./config/database.js";
 
 const app = express();
 
@@ -32,6 +34,16 @@ app.use(cookieParser());
 
 // HTTP request logger
 app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
+
+// Ensure database connection before handling API requests
+app.use("/api", async (_req, _res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // API Routes
 app.use("/api", apiRoutes);
