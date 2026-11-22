@@ -1,4 +1,5 @@
 
+import { createHash, randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 
 import { env } from "../../config/env.js";
@@ -20,6 +21,7 @@ export const generateAccessToken = (
   });
 };
 
+
 // Generate refresh token
 export const generateRefreshToken = (
   payload: JwtPayload,
@@ -31,6 +33,7 @@ export const generateRefreshToken = (
 
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
     expiresIn,
+    jwtid: randomUUID(),
   });
 };
 
@@ -57,4 +60,27 @@ export const verifyRefreshToken = (
   );
 
   return authValidation.jwtPayloadSchema.parse(decoded);
+};
+
+// Hash refresh token before database storage
+export const hashRefreshToken = (token: string): string => {
+  return createHash("sha256").update(token).digest("hex");
+};
+
+
+// Get refresh token expiration date
+export const getRefreshTokenExpiry = (
+  token: string,
+): Date => {
+  const decoded = jwt.decode(token);
+
+  if (
+    typeof decoded !== "object" ||
+    decoded === null ||
+    typeof decoded.exp !== "number"
+  ) {
+    throw new Error("Invalid refresh token expiration");
+  }
+
+  return new Date(decoded.exp * 1000);
 };

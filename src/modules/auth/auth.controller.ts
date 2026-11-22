@@ -58,6 +58,51 @@ const loginUser: RequestHandler = asyncHandler(
   },
 );
 
+
+
+const refreshToken: RequestHandler = asyncHandler(
+  async (req, res) => {
+    // Read refresh token from HTTP-only cookie
+    const rawRefreshToken = req.cookies?.refreshToken;
+
+    if (!rawRefreshToken) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Refresh token is required",
+      );
+    }
+
+    // Generate new access and refresh tokens
+    const { accessToken, refreshToken: newRefreshToken } =
+      await authService.refreshAccessToken(rawRefreshToken);
+
+    // Update access token cookie
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: env.COOKIE_SECURE,
+      sameSite: env.COOKIE_SAME_SITE,
+      maxAge: env.JWT_ACCESS_COOKIE_MAX_AGE_MS,
+      path: "/",
+    });
+
+    // Replace old refresh token cookie
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: env.COOKIE_SECURE,
+      sameSite: env.COOKIE_SAME_SITE,
+      maxAge: env.JWT_REFRESH_COOKIE_MAX_AGE_MS,
+      path: "/",
+    });
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Tokens refreshed successfully",
+    });
+  },
+);
+
+
 export const authController = {
   loginUser,
+  refreshToken,
 };
