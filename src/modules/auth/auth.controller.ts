@@ -102,7 +102,35 @@ const refreshToken: RequestHandler = asyncHandler(
 );
 
 
+const logoutUser: RequestHandler = asyncHandler(
+  async (req, res) => {
+    // Read the current device's refresh token
+    const rawRefreshToken = req.cookies?.refreshToken;
+
+    // Revoke the current session if a token exists
+    await authService.logoutUser(rawRefreshToken);
+
+    // Clear authentication cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: env.COOKIE_SECURE,
+      sameSite: env.COOKIE_SAME_SITE,
+      path: "/",
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Logout successful",
+    });
+  },
+);
+
+
 export const authController = {
   loginUser,
   refreshToken,
+  logoutUser,
 };

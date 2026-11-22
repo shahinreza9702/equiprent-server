@@ -261,7 +261,26 @@ const refreshAccessToken = async (rawRefreshToken: string) => {
 };
 
 
+
+const logoutUser = async (rawRefreshToken?: string) => {
+    // Revoke only the current device's refresh-token session
+    if (rawRefreshToken) {
+        const tokenHash = hashRefreshToken(rawRefreshToken);
+
+        await RefreshToken.updateOne(
+            {
+                tokenHash,
+                revokedAt: null,
+            },
+            {
+                $set: { revokedAt: new Date() },
+            },
+        );
+    }
+};
+
 export const authService = {
     loginUser,
     refreshAccessToken,
+    logoutUser,
 };
