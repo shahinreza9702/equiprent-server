@@ -1,7 +1,7 @@
 
 import express from "express";
 import cors from "cors";
-import * as helmet from "helmet";
+import helmetModule from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRoutes from "./routes/index.js";
@@ -14,8 +14,12 @@ import { connectDatabase } from "./config/database.js";
 
 const app = express();
 
+const helmet = helmetModule as unknown as (
+  options?: Record<string, unknown>,
+) => import("express").RequestHandler;
+
 // Security middleware
-app.use(helmet.default());
+app.use(helmet());
 
 // CORS configuration
 app.use(
