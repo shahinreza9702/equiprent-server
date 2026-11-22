@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 import { EQUIPMENT_RENTAL_TYPES } from "./equipment.types.js";
@@ -14,7 +15,7 @@ const createEquipmentSchema = z
     description: z
       .string()
       .trim()
-      .min(10, "Description must be at least 10 characters"),
+      .min(10, "Equipment description must be at least 10 characters"),
 
     category: z
       .string()
@@ -36,6 +37,21 @@ const createEquipmentSchema = z
       .number()
       .int("Available quantity must be a whole number")
       .min(0, "Available quantity cannot be negative"),
+
+    condition: z
+      .string()
+      .trim()
+      .min(2, "Equipment condition must be at least 2 characters"),
+
+    brand: z
+      .string()
+      .trim()
+      .min(1, "Equipment brand is required"),
+
+    model: z
+      .string()
+      .trim()
+      .min(1, "Equipment model is required"),
 
     image: z
       .string()

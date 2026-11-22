@@ -1,3 +1,4 @@
+
 export const EQUIPMENT_RENTAL_TYPES = [
   "daily",
   "weekly",
@@ -15,6 +16,15 @@ export const EQUIPMENT_STATUSES = [
 export type EquipmentStatus =
   (typeof EQUIPMENT_STATUSES)[number];
 
+export const EQUIPMENT_APPROVAL_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+
+export type EquipmentApprovalStatus =
+  (typeof EQUIPMENT_APPROVAL_STATUSES)[number];
+
 export interface IEquipment {
   name: string;
   description: string;
@@ -23,10 +33,14 @@ export interface IEquipment {
   rentalType: EquipmentRentalType;
   location: string;
   availableQuantity: number;
+  condition: string;
+  brand: string;
+  model: string;
   image: string;
   owner: import("mongoose").Types.ObjectId;
   rentalTerms: string;
   status: EquipmentStatus;
+  approvalStatus: EquipmentApprovalStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }

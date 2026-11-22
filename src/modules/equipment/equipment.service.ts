@@ -1,3 +1,4 @@
+
 import mongoose, { type QueryFilter } from "mongoose";
 
 import Equipment from "./equipment.model.js";
@@ -8,6 +9,7 @@ import HTTP_STATUS from "../../constants/http-status.js";
 
 import type { IEquipment } from "./equipment.types.js";
 
+// Create equipment payload
 interface CreateEquipmentInput {
   name: string;
   description: string;
@@ -16,10 +18,14 @@ interface CreateEquipmentInput {
   rentalType: IEquipment["rentalType"];
   location: string;
   availableQuantity: number;
+  condition: string;
+  brand: string;
+  model: string;
   image: string;
   rentalTerms: string;
 }
 
+// Equipment listing query parameters
 interface EquipmentQuery {
   page?: number;
   limit?: number;
@@ -31,6 +37,7 @@ interface EquipmentQuery {
   maxPrice?: number | undefined;
 }
 
+// Create equipment
 const createEquipment = async (
   ownerId: string,
   payload: CreateEquipmentInput,
@@ -54,17 +61,20 @@ const createEquipment = async (
   const equipment = await Equipment.create({
     ...payload,
     owner: owner._id,
+    approvalStatus: "pending",
   });
 
   return equipment;
 };
 
+// Get all approved and available equipment
 const getAllEquipment = async (query: EquipmentQuery = {}) => {
   const page = Math.max(1, query.page ?? 1);
   const limit = Math.min(50, Math.max(1, query.limit ?? 12));
   const skip = (page - 1) * limit;
 
   const matchFilter: QueryFilter<IEquipment> = {
+    approvalStatus: "approved",
     status: "available",
     availableQuantity: { $gt: 0 },
   };
@@ -98,7 +108,7 @@ const getAllEquipment = async (query: EquipmentQuery = {}) => {
     matchFilter.rentalType = query.rentalType;
   }
 
-  // Filter by minimum price
+  // Filter by price range
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
     matchFilter.rentalPrice = {
       ...(query.minPrice !== undefined ? { $gte: query.minPrice } : {}),
@@ -136,9 +146,13 @@ const getAllEquipment = async (query: EquipmentQuery = {}) => {
         rentalType: 1,
         location: 1,
         availableQuantity: 1,
+        condition: 1,
+        brand: 1,
+        model: 1,
         image: 1,
         rentalTerms: 1,
         status: 1,
+        approvalStatus: 1,
         createdAt: 1,
         updatedAt: 1,
         owner: {
@@ -182,6 +196,7 @@ const getAllEquipment = async (query: EquipmentQuery = {}) => {
   };
 };
 
+// Export equipment services
 export const equipmentService = {
   createEquipment,
   getAllEquipment,

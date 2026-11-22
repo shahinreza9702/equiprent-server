@@ -1,3 +1,4 @@
+
 import mongoose, { Schema } from "mongoose";
 
 import type { IEquipment } from "./equipment.types.js";
@@ -5,6 +6,7 @@ import type { IEquipment } from "./equipment.types.js";
 import {
   EQUIPMENT_RENTAL_TYPES,
   EQUIPMENT_STATUSES,
+  EQUIPMENT_APPROVAL_STATUSES,
 } from "./equipment.types.js";
 
 const equipmentSchema = new Schema<IEquipment>(
@@ -58,6 +60,24 @@ const equipmentSchema = new Schema<IEquipment>(
       },
     },
 
+    condition: {
+      type: String,
+      required: [true, "Equipment condition is required"],
+      trim: true,
+    },
+
+    brand: {
+      type: String,
+      required: [true, "Equipment brand is required"],
+      trim: true,
+    },
+
+    model: {
+      type: String,
+      required: [true, "Equipment model is required"],
+      trim: true,
+    },
+
     image: {
       type: String,
       required: [true, "Equipment image is required"],
@@ -80,6 +100,12 @@ const equipmentSchema = new Schema<IEquipment>(
       type: String,
       enum: EQUIPMENT_STATUSES,
       default: "available",
+    },
+
+    approvalStatus: {
+      type: String,
+      enum: EQUIPMENT_APPROVAL_STATUSES,
+      default: "pending",
     },
   },
   {
