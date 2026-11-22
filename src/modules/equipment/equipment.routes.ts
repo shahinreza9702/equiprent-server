@@ -10,6 +10,13 @@ const router = Router();
 // Public: Get all available equipment
 router.get("/", equipmentController.getAllEquipment);
 
+// Private: Get equipment details by ID
+router.get(
+  "/:id",
+  authMiddleware,
+  equipmentController.getEquipmentById,
+);
+
 // Owner only: Create equipment
 router.post(
   "/",

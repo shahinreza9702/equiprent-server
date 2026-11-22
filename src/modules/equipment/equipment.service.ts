@@ -196,8 +196,57 @@ const getAllEquipment = async (query: EquipmentQuery = {}) => {
   };
 };
 
+// Get equipment details by ID
+const getEquipmentById = async (equipmentId: string) => {
+  if (!mongoose.isValidObjectId(equipmentId)) {
+    throw new ApiError(
+      HTTP_STATUS.BAD_REQUEST,
+      "Invalid equipment ID",
+    );
+  }
+
+  const equipment = await Equipment.findOne({
+    _id: equipmentId,
+    approvalStatus: "approved",
+  }).populate({
+    path: "owner",
+    select: "name email phone avatar role status",
+  });
+
+  if (
+    !equipment ||
+    !equipment.owner ||
+    typeof equipment.owner === "string"
+  ) {
+    throw new ApiError(
+      HTTP_STATUS.NOT_FOUND,
+      "Equipment not found",
+    );
+  }
+
+  const owner = equipment.owner as unknown as {
+    _id: mongoose.Types.ObjectId;
+    name: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
+    role: string;
+    status: string;
+  };
+
+  if (owner.role !== "owner" || owner.status !== "active") {
+    throw new ApiError(
+      HTTP_STATUS.NOT_FOUND,
+      "Equipment not found",
+    );
+  }
+
+  return equipment;
+};
+
 // Export equipment services
 export const equipmentService = {
   createEquipment,
   getAllEquipment,
+  getEquipmentById,
 };

@@ -74,7 +74,39 @@ const getAllEquipment: RequestHandler = asyncHandler(
   },
 );
 
+// Get equipment details by ID
+const getEquipmentById: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    const equipmentId = req.params.id;
+
+    if (typeof equipmentId !== "string") {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Invalid equipment ID",
+      );
+    }
+
+    const equipment = await equipmentService.getEquipmentById(
+      equipmentId,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Equipment details retrieved successfully",
+      data: equipment,
+    });
+  },
+);
+
 export const equipmentController = {
   createEquipment,
   getAllEquipment,
+  getEquipmentById,
 };
