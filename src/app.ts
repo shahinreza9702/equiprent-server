@@ -1,7 +1,7 @@
 
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
+import * as helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRoutes from "./routes/index.js";
@@ -15,7 +15,7 @@ import { connectDatabase } from "./config/database.js";
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet.default());
 
 // CORS configuration
 app.use(
