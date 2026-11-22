@@ -339,6 +339,49 @@ const updateEquipment = async (
   return equipment;
 };
 
+// Delete owner's equipment
+const deleteEquipment = async (
+  ownerId: string,
+  equipmentId: string,
+) => {
+  if (
+    !mongoose.isValidObjectId(ownerId) ||
+    !mongoose.isValidObjectId(equipmentId)
+  ) {
+    throw new ApiError(
+      HTTP_STATUS.BAD_REQUEST,
+      "Invalid owner or equipment ID",
+    );
+  }
+
+  const owner = await User.findOne({
+    _id: ownerId,
+    role: "owner",
+    status: "active",
+  }).select("_id");
+
+  if (!owner) {
+    throw new ApiError(
+      HTTP_STATUS.FORBIDDEN,
+      "Only active equipment owners can delete equipment",
+    );
+  }
+
+  const equipment = await Equipment.findOneAndDelete({
+    _id: equipmentId,
+    owner: owner._id,
+  });
+
+  if (!equipment) {
+    throw new ApiError(
+      HTTP_STATUS.NOT_FOUND,
+      "Equipment not found",
+    );
+  }
+
+  return equipment;
+};
+
 // Export equipment services
 export const equipmentService = {
   createEquipment,
@@ -346,4 +389,5 @@ export const equipmentService = {
   getEquipmentById,
   getOwnerEquipments,
   updateEquipment,
+  deleteEquipment,
 };

@@ -174,10 +174,43 @@ const updateEquipment: RequestHandler = asyncHandler(
   },
 );
 
+// Delete owner's equipment
+const deleteEquipment: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    const equipmentId = req.params.id;
+
+    if (typeof equipmentId !== "string") {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Invalid equipment ID",
+      );
+    }
+
+    await equipmentService.deleteEquipment(
+      req.user.userId,
+      equipmentId,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Equipment deleted successfully",
+      data: null,
+    });
+  },
+);
+
 export const equipmentController = {
   createEquipment,
   getAllEquipment,
   getEquipmentById,
   getOwnerEquipments,
   updateEquipment,
+  deleteEquipment,
 };

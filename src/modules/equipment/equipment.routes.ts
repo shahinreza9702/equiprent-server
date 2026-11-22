@@ -33,6 +33,14 @@ router.patch(
   equipmentController.updateEquipment,
 );
 
+// Owner only - Delete equipment
+router.delete(
+  "/:id",
+  authMiddleware,
+  authorizeRoles("owner"),
+  equipmentController.deleteEquipment,
+);
+
 // Owner only: Create equipment
 router.post(
   "/",
