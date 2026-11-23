@@ -36,6 +36,19 @@ const resetPasswordSchema = z.object({
     .max(72, "Password cannot exceed 72 characters"),
 });
 
+// Change password validation schema
+const changePasswordSchema = z.object({
+  currentPassword: z
+    .string()
+    .min(1, "Current password is required")
+    .max(72, "Invalid password"),
+
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password cannot exceed 72 characters"),
+});
+
 // JWT payload validation
 export const jwtPayloadSchema = z.object({
   userId: z.string().min(1),
@@ -48,5 +61,6 @@ export const authValidation = {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
   jwtPayloadSchema,
 };

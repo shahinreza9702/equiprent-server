@@ -1,11 +1,14 @@
 
 import { Router } from "express";
 
-import { authController } from "./auth.controller.js";
+import authMiddleware from "../../middlewares/auth.middleware.js";
+
 import {
-    forgotPasswordLimiter,
-    resetPasswordLimiter,
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
 } from "../../middlewares/rate-limit.middleware.js";
+
+import { authController } from "./auth.controller.js";
 
 const router = Router();
 
@@ -13,16 +16,22 @@ router.post("/login", authController.loginUser);
 router.post("/refresh", authController.refreshToken);
 router.post("/logout", authController.logoutUser);
 
-router.post(
-    "/forgot-password",
-    forgotPasswordLimiter,
-    authController.forgotPassword,
+router.patch(
+  "/change-password",
+  authMiddleware,
+  authController.changePassword,
 );
 
 router.post(
-    "/reset-password",
-    resetPasswordLimiter,
-    authController.resetPassword,
+  "/forgot-password",
+  forgotPasswordLimiter,
+  authController.forgotPassword,
+);
+
+router.post(
+  "/reset-password",
+  resetPasswordLimiter,
+  authController.resetPassword,
 );
 
 export default router;

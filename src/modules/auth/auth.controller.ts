@@ -160,6 +160,42 @@ const resetPassword: RequestHandler = asyncHandler(
   },
 );
 
+const changePassword: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const validationResult =
+      authValidation.changePasswordSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const message = validationResult.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        message,
+      );
+    }
+
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    await authService.changePassword({
+      userId: req.user.userId,
+      ...validationResult.data,
+    });
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message:
+        "Password changed successfully. Please log in again.",
+    });
+  },
+);
+
 
 const logoutUser: RequestHandler = asyncHandler(
   async (req, res) => {
@@ -193,4 +229,5 @@ export const authController = {
   logoutUser,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

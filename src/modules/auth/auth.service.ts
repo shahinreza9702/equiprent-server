@@ -366,6 +366,93 @@ const logoutUser = async (rawRefreshToken?: string) => {
 };
 
 
+interface ChangePasswordInput {
+    userId: string;
+    currentPassword: string;
+    newPassword: string;
+}
+
+const changePassword = async (
+    payload: ChangePasswordInput,
+): Promise<void> => {
+    const now = new Date();
+    const session = await mongoose.startSession();
+
+    try {
+        await session.withTransaction(async () => {
+            // Find the authenticated user and include the password field
+            const user = await User.findById(
+                payload.userId,
+            )
+                .select("+password")
+                .session(session);
+
+            if (!user) {
+                throw new ApiError(
+                    HTTP_STATUS.NOT_FOUND,
+                    "User account not found",
+                );
+            }
+
+            if (user.status !== "active") {
+                throw new ApiError(
+                    HTTP_STATUS.FORBIDDEN,
+                    "Your account is not active",
+                );
+            }
+
+            // Verify the current password
+            const isCurrentPasswordValid = await bcrypt.compare(
+                payload.currentPassword,
+                user.password,
+            );
+
+            if (!isCurrentPasswordValid) {
+                throw new ApiError(
+                    HTTP_STATUS.BAD_REQUEST,
+                    "Current password is incorrect",
+                );
+            }
+
+            // Prevent reusing the current password
+            const isSamePassword = await bcrypt.compare(
+                payload.newPassword,
+                user.password,
+            );
+
+            if (isSamePassword) {
+                throw new ApiError(
+                    HTTP_STATUS.BAD_REQUEST,
+                    "New password must be different from the current password",
+                );
+            }
+
+            // Hash and update the new password
+            user.password = await bcrypt.hash(
+                payload.newPassword,
+                12,
+            );
+
+            await user.save({ session });
+
+            // Revoke all active refresh-token sessions
+            await RefreshToken.updateMany(
+                {
+                    user: user._id,
+                    revokedAt: null,
+                },
+                {
+                    $set: { revokedAt: now },
+                },
+                { session },
+            );
+        });
+    } finally {
+        await session.endSession();
+    }
+};
+
+
 interface ResetPasswordInput {
     token: string;
     newPassword: string;
@@ -469,4 +556,5 @@ export const authService = {
     logoutUser,
     forgotPassword,
     resetPassword,
+    changePassword,
 };
