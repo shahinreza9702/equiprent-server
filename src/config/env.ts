@@ -1,4 +1,4 @@
-
+﻿
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -24,6 +24,11 @@ export const env = {
   PORT: Number(process.env.PORT ?? 5000),
   DATABASE_URL: process.env.DATABASE_URL!,
   CLIENT_URL: process.env.CLIENT_URL ?? "http://localhost:3000",
+
+  // Stripe payment configuration
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ?? "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  STRIPE_CURRENCY: (process.env.STRIPE_CURRENCY ?? "usd").toLowerCase(),
 
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET!,
   JWT_ACCESS_EXPIRES_IN:
@@ -55,3 +60,4 @@ export const env = {
   SMTP_PASSWORD: process.env.SMTP_PASSWORD ?? "",
   EMAIL_FROM: process.env.EMAIL_FROM ?? "",
 };
+

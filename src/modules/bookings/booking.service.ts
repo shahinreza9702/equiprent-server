@@ -14,7 +14,7 @@ import HTTP_STATUS from "../../constants/http-status.js";
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // Calculate rental duration in total days for every rental type.
-const calculateRentalDuration = (
+export const calculateRentalDuration = (
   startDate: Date,
   endDate: Date,
   rentalType: IEquipment["rentalType"],
@@ -63,7 +63,6 @@ const calculateRentalDuration = (
     );
   }
 
-  // Store total rental days for daily, weekly, and monthly rentals.
   return durationInDays;
 };
 
@@ -85,7 +84,8 @@ const calculateMonthlyAmount = (
     const segmentEnd = nextMonth < endDate ? nextMonth : endDate;
 
     const usedDays =
-      (segmentEnd.getTime() - cursor.getTime()) / MILLISECONDS_PER_DAY;
+      (segmentEnd.getTime() - cursor.getTime()) /
+      MILLISECONDS_PER_DAY;
 
     const daysInMonth = new Date(
       Date.UTC(year, month + 1, 0),
@@ -100,7 +100,7 @@ const calculateMonthlyAmount = (
 };
 
 // Calculate total rental amount based on rental type.
-const calculateTotalAmount = (
+export const calculateTotalAmount = (
   rentalPrice: number,
   rentalType: IEquipment["rentalType"],
   startDate: Date,
@@ -144,9 +144,9 @@ const calculateTotalAmount = (
   }
 
   return Number(totalAmount.toFixed(2));
-};
+}
 
-interface CreateBookingInput {
+export interface CreateBookingInput {
   equipment: string;
   startDate: Date;
   endDate: Date;
@@ -400,7 +400,10 @@ const updateBookingStatus = async (
         );
       }
 
-      if (payload.status === "completed" && booking.status !== "approved") {
+      if (
+        payload.status === "completed" &&
+        booking.status !== "approved"
+      ) {
         throw new ApiError(
           HTTP_STATUS.CONFLICT,
           "Only approved bookings can be completed",
@@ -408,8 +411,6 @@ const updateBookingStatus = async (
       }
 
       if (payload.status === "approved") {
-        // Create a write conflict for concurrent approvals
-        // targeting the same equipment.
         const equipment = await Equipment.findOneAndUpdate(
           {
             _id: booking.equipment,
@@ -433,8 +434,6 @@ const updateBookingStatus = async (
           );
         }
 
-        // Find approved bookings overlapping this booking's date range.
-        // Date range uses [startDate, endDate).
         const overlappingBookings = await Booking.find({
           _id: { $ne: booking._id },
           equipment: booking.equipment,
