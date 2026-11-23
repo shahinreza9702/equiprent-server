@@ -5,10 +5,21 @@ import { equipmentController } from "./equipment.controller.js";
 import authMiddleware from "../../middlewares/auth.middleware.js";
 import authorizeRoles from "../../middlewares/role.middleware.js";
 
+import imageUpload from "../../middlewares/image-upload.middleware.js";
+
 const router = Router();
 
 // Public: Get all available equipment
 router.get("/", equipmentController.getAllEquipment);
+
+// Owner only: Upload equipment image
+router.post(
+  "/upload-image",
+  authMiddleware,
+  authorizeRoles("owner"),
+  imageUpload,
+  equipmentController.uploadEquipmentImage,
+);
 
 // Owner only: Get owner's equipment
 router.get(

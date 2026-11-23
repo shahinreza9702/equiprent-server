@@ -8,6 +8,32 @@ import HTTP_STATUS from "../../constants/http-status.js";
 import { equipmentService } from "./equipment.service.js";
 import { equipmentValidation } from "./equipment.validation.js";
 
+import { equipmentImageService } from "./equipment-image.service.js";
+
+
+// Upload equipment image to ImgBB
+const uploadEquipmentImage: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.file) {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Please select an image to upload",
+      );
+    }
+
+    const imageUrl =
+      await equipmentImageService.uploadEquipmentImage(req.file);
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Image uploaded successfully",
+      data: {
+        imageUrl,
+      },
+    });
+  },
+);
+
 // Create equipment
 const createEquipment: RequestHandler = asyncHandler(
   async (req, res) => {
@@ -207,6 +233,7 @@ const deleteEquipment: RequestHandler = asyncHandler(
 );
 
 export const equipmentController = {
+  uploadEquipmentImage,
   createEquipment,
   getAllEquipment,
   getEquipmentById,
