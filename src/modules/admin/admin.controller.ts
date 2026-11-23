@@ -8,6 +8,16 @@ import HTTP_STATUS from "../../constants/http-status.js";
 import { adminService } from "./admin.service.js";
 import { adminValidation } from "./admin.validation.js";
 
+const getOverview: RequestHandler = asyncHandler(async (_req, res) => {
+  const result = await adminService.getOverview();
+
+  sendResponse(res, {
+    statusCode: HTTP_STATUS.OK,
+    message: "Admin overview retrieved successfully",
+    data: result,
+  });
+});
+
 const getUsers: RequestHandler = asyncHandler(async (req, res) => {
   const validationResult =
     adminValidation.getUsersQuerySchema.safeParse(req.query);
@@ -182,8 +192,8 @@ const getEquipments: RequestHandler = asyncHandler(async (req, res) => {
   });
 });
 
-
 export const adminController = {
+  getOverview,
   getUsers,
   getOwnerApplications,
   updateUserStatus,

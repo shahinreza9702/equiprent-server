@@ -8,6 +8,8 @@ import { adminController } from "./admin.controller.js";
 const router = Router();
 
 // All admin routes require admin authentication
+// Admin Dashboard Overview
+router.get("/overview", adminController.getOverview);
 router.use(authMiddleware, authorizeRoles("admin"));
 
 // Get users with search, filters and pagination

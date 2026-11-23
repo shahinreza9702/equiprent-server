@@ -1,4 +1,5 @@
 import { isValidObjectId } from "mongoose";
+import Booking from "../bookings/booking.model.js";
 import mongoose from "mongoose";
 import OwnerApplication from "../owner-applications/owner-applications.model.js";
 import type { OwnerApplicationStatus } from "../owner-applications/owner-applications.types.js";
@@ -335,6 +336,168 @@ const getEquipments = async (query: GetEquipmentsInput) => {
   };
 };
 
+
+const getOverview = async () => {
+  const now = new Date();
+
+  const nextMonthStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+  );
+
+  const sixMonthStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1),
+  );
+
+  const confirmedBookingFilter = {
+    status: { $in: ["approved", "completed"] },
+  };
+
+  const [
+    totalUsers,
+    totalEquipment,
+    totalBookings,
+    pendingEquipment,
+    pendingBookings,
+    confirmedBookingValue,
+    recentUsers,
+    pendingEquipmentList,
+    monthlyBookingResults,
+  ] = await Promise.all([
+    User.countDocuments(),
+
+    Equipment.countDocuments(),
+
+    Booking.countDocuments(),
+
+    Equipment.countDocuments({ approvalStatus: "pending" }),
+
+    Booking.countDocuments({ status: "pending" }),
+
+    Booking.aggregate([
+      { $match: confirmedBookingFilter },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" },
+        },
+      },
+    ]),
+
+    User.find()
+      .select("name email role status createdAt")
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .lean(),
+
+    Equipment.find({ approvalStatus: "pending" })
+      .select("name category location image createdAt owner")
+      .populate("owner", "name email")
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .lean(),
+
+    Booking.aggregate([
+      {
+        $match: {
+          ...confirmedBookingFilter,
+          createdAt: {
+            $gte: sixMonthStart,
+            $lt: nextMonthStart,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m",
+              date: "$createdAt",
+            },
+          },
+          total: { $sum: "$totalAmount" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+  ]);
+
+  // Fill missing months with zero values.
+  const monthlyBookingValue = Array.from(
+    { length: 6 },
+    (_, index) => {
+      const monthDate = new Date(
+        Date.UTC(
+          sixMonthStart.getUTCFullYear(),
+          sixMonthStart.getUTCMonth() + index,
+          1,
+        ),
+      );
+
+      const monthKey = [
+        monthDate.getUTCFullYear(),
+        String(monthDate.getUTCMonth() + 1).padStart(2, "0"),
+      ].join("-");
+
+      const result = monthlyBookingResults.find(
+        (item) => item._id === monthKey,
+      );
+
+      return {
+        month: monthKey,
+        value: result?.total ?? 0,
+      };
+    },
+  );
+
+  return {
+    stats: {
+      totalUsers,
+      totalEquipment,
+      totalBookings,
+      pendingEquipment,
+      pendingBookings,
+      confirmedBookingValue:
+        confirmedBookingValue[0]?.total ?? 0,
+    },
+
+    monthlyBookingValue,
+
+    recentUsers: recentUsers.map((user) => ({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      createdAt: user.createdAt,
+    })),
+
+    pendingEquipments: pendingEquipmentList.map((equipment) => {
+      const owner = equipment.owner as unknown as {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        email: string;
+      } | null;
+
+      return {
+        id: equipment._id.toString(),
+        name: equipment.name,
+        category: equipment.category,
+        location: equipment.location,
+        image: equipment.image,
+        createdAt: equipment.createdAt,
+        owner: owner
+          ? {
+              id: owner._id.toString(),
+              name: owner.name,
+              email: owner.email,
+            }
+          : null,
+      };
+    }),
+  };
+};
+
+
 const reviewEquipment = async (
   equipmentId: string,
   adminUserId: string,
@@ -473,6 +636,7 @@ const reviewOwnerApplication = async (
 };
 
 export const adminService = {
+  getOverview,
   getUsers,
   updateUserStatus,
   reviewOwnerApplication,
