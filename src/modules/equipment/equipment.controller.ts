@@ -153,6 +153,28 @@ const getOwnerEquipments: RequestHandler = asyncHandler(
   },
 );
 
+// Get owner's dashboard summary
+const getOwnerDashboardSummary: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
+
+    const summary = await equipmentService.getOwnerDashboardSummary(
+      req.user.userId,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Owner dashboard summary retrieved successfully",
+      data: summary,
+    });
+  },
+);
+
 // Update owner's equipment
 const updateEquipment: RequestHandler = asyncHandler(
   async (req, res) => {
@@ -238,6 +260,7 @@ export const equipmentController = {
   getAllEquipment,
   getEquipmentById,
   getOwnerEquipments,
+  getOwnerDashboardSummary,
   updateEquipment,
   deleteEquipment,
 };

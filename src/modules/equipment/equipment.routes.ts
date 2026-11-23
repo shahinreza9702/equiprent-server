@@ -29,6 +29,14 @@ router.get(
   equipmentController.getOwnerEquipments,
 );
 
+// Owner only: Get owner's dashboard summary
+router.get(
+  "/owner/dashboard-summary",
+  authMiddleware,
+  authorizeRoles("owner"),
+  equipmentController.getOwnerDashboardSummary,
+);
+
 // Private: Get equipment details by ID
 router.get(
   "/:id",

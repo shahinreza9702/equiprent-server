@@ -107,6 +107,19 @@ const equipmentSchema = new Schema<IEquipment>(
       enum: EQUIPMENT_APPROVAL_STATUSES,
       default: "pending",
     },
+    reviewedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    reviewedAt: {
+      type: Date,
+    },
+    bookingApprovalVersion: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
   },
   {
     timestamps: true,

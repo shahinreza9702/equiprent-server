@@ -290,6 +290,96 @@ const getOwnerEquipments = async (
   };
 };
 
+// Get owner's equipment dashboard summary
+const getOwnerDashboardSummary = async (ownerId: string) => {
+  if (!mongoose.isValidObjectId(ownerId)) {
+    throw new ApiError(
+      HTTP_STATUS.UNAUTHORIZED,
+      "Invalid authenticated user",
+    );
+  }
+
+  const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+
+  const [summary] = await Equipment.aggregate([
+    {
+      $match: {
+        owner: ownerObjectId,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+
+        totalEquipment: {
+          $sum: 1,
+        },
+
+        approvedEquipment: {
+          $sum: {
+            $cond: [{ $eq: ["$approvalStatus", "approved"] }, 1, 0],
+          },
+        },
+
+        pendingEquipment: {
+          $sum: {
+            $cond: [{ $eq: ["$approvalStatus", "pending"] }, 1, 0],
+          },
+        },
+
+        rejectedEquipment: {
+          $sum: {
+            $cond: [{ $eq: ["$approvalStatus", "rejected"] }, 1, 0],
+          },
+        },
+
+        availableEquipment: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$status", "available"] },
+                  { $gt: ["$availableQuantity", 0] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+
+        unavailableEquipment: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "unavailable"] }, 1, 0],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        totalEquipment: 1,
+        approvedEquipment: 1,
+        pendingEquipment: 1,
+        rejectedEquipment: 1,
+        availableEquipment: 1,
+        unavailableEquipment: 1,
+      },
+    },
+  ]);
+
+  return (
+    summary ?? {
+      totalEquipment: 0,
+      approvedEquipment: 0,
+      pendingEquipment: 0,
+      rejectedEquipment: 0,
+      availableEquipment: 0,
+      unavailableEquipment: 0,
+    }
+  );
+};
+
 // Update equipment
 const updateEquipment = async (
   ownerId: string,
@@ -335,9 +425,9 @@ const updateEquipment = async (
 
   Object.assign(equipment, payload);
 
-  if (equipment.approvalStatus === "approved") {
-    equipment.approvalStatus = "pending";
-  }
+  equipment.approvalStatus = "pending";
+  equipment.set("reviewedBy", undefined);
+  equipment.set("reviewedAt", undefined);
 
   await equipment.save();
 
@@ -393,6 +483,7 @@ export const equipmentService = {
   getAllEquipment,
   getEquipmentById,
   getOwnerEquipments,
+  getOwnerDashboardSummary,
   updateEquipment,
   deleteEquipment,
 };

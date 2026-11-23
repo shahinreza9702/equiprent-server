@@ -1,4 +1,3 @@
-
 export const USER_ROLES = [
   "customer",
   "owner",
@@ -23,4 +22,6 @@ export interface IUser {
   avatar?: string;
   isEmailVerified: boolean;
   status: UserStatus;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

@@ -41,6 +41,9 @@ export interface IEquipment {
   rentalTerms: string;
   status: EquipmentStatus;
   approvalStatus: EquipmentApprovalStatus;
+  reviewedBy?: import("mongoose").Types.ObjectId;
+  reviewedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  bookingApprovalVersion?: number;
 }
