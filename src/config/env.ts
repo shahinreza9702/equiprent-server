@@ -38,8 +38,8 @@ export const env = {
   JWT_REFRESH_EXPIRES_IN:
     process.env.JWT_REFRESH_EXPIRES_IN ?? "7d",
 
-  COOKIE_SECURE: process.env.COOKIE_SECURE === "true",
-  COOKIE_SAME_SITE: "strict" as const,
+  COOKIE_SECURE: true,
+  COOKIE_SAME_SITE: "none" as const,
 
   JWT_ACCESS_COOKIE_MAX_AGE_MS: Number(
     process.env.JWT_ACCESS_COOKIE_MAX_AGE_MS ?? 900000,
