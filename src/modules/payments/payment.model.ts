@@ -1,4 +1,5 @@
-﻿import mongoose, { Schema } from "mongoose";
+﻿
+import mongoose, { Schema } from "mongoose";
 
 import type { IPayment } from "./payment.types.js";
 
@@ -102,6 +103,20 @@ const paymentSchema = new Schema<IPayment>(
       type: String,
       trim: true,
     },
+    refundId: {
+      type: String,
+      trim: true,
+    },
+    refundStatus: {
+      type: String,
+      enum: [
+        "pending",
+        "requires_action",
+        "succeeded",
+        "failed",
+        "canceled",
+      ],
+    },
 
     booking: {
       type: Schema.Types.ObjectId,
@@ -122,6 +137,11 @@ paymentSchema.index(
 
 paymentSchema.index(
   { paymentIntentId: 1 },
+  { unique: true, sparse: true },
+);
+
+paymentSchema.index(
+  { refundId: 1 },
   { unique: true, sparse: true },
 );
 

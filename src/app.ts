@@ -12,7 +12,9 @@ import globalErrorHandler from "./middlewares/global-error.middleware.js";
 import { env } from "./config/env.js";
 import { connectDatabase } from "./config/database.js";
 
-// Load Helmet through Node.js CommonJS interoperability
+import { paymentWebhookController } from "./modules/payments/payment.webhook.controller.js";
+
+// Load Helmet through Node.js CommonJS interoperability.
 const require = createRequire(import.meta.url);
 
 const helmet = require("helmet") as (
@@ -21,10 +23,10 @@ const helmet = require("helmet") as (
 
 const app = express();
 
-// Security middleware
+// Security middleware.
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration.
 app.use(
   cors({
     origin: env.CLIENT_URL,
@@ -32,17 +34,33 @@ app.use(
   }),
 );
 
-// Request body parsers
+// HTTP request logger.
+app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
+
+// Stripe webhook must receive the original raw request body.
+// This route must be registered before express.json().
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  async (_req, _res, next) => {
+    try {
+      await connectDatabase();
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+  paymentWebhookController.handleStripeWebhook,
+);
+
+// Standard request body parsers.
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Cookie parser
+// Cookie parser.
 app.use(cookieParser());
 
-// HTTP request logger
-app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
-
-// Ensure database connection before handling API requests
+// Ensure database connection before handling normal API requests.
 app.use("/api", async (_req, _res, next) => {
   try {
     await connectDatabase();
@@ -52,10 +70,10 @@ app.use("/api", async (_req, _res, next) => {
   }
 });
 
-// API Routes
+// API routes.
 app.use("/api", apiRoutes);
 
-// Root route
+// Root route.
 app.get("/", (_req, res) => {
   res.status(200).json({
     success: true,
@@ -63,10 +81,10 @@ app.get("/", (_req, res) => {
   });
 });
 
-// Handle undefined routes
+// Handle undefined routes.
 app.use(notFound);
 
-// Handle application errors
+// Handle application errors.
 app.use(globalErrorHandler);
 
 export default app;

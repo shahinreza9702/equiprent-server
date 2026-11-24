@@ -1,3 +1,4 @@
+
 import type { RequestHandler } from "express";
 
 import ApiError from "../../utils/api-error.js";
@@ -9,36 +10,44 @@ import paymentService from "./payment.service.js";
 
 // Verify a Stripe Checkout Session.
 const verifyCheckoutSession: RequestHandler = asyncHandler(
-    async (req, res) => {
-        if (!req.user) {
-            throw new ApiError(
-                HTTP_STATUS.UNAUTHORIZED,
-                "Authentication required",
-            );
-        }
+  async (req, res) => {
+    // Prevent browsers and proxies from caching payment status.
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+      "Surrogate-Control": "no-store",
+    });
 
-        const sessionId = req.params.sessionId;
+    if (!req.user) {
+      throw new ApiError(
+        HTTP_STATUS.UNAUTHORIZED,
+        "Authentication required",
+      );
+    }
 
-        if (typeof sessionId !== "string" || !sessionId.trim()) {
-            throw new ApiError(
-                HTTP_STATUS.BAD_REQUEST,
-                "Invalid Checkout Session ID",
-            );
-        }
+    const sessionId = req.params.sessionId;
 
-        const result = await paymentService.verifyCheckoutSession(
-            req.user.userId,
-            sessionId,
-        );
+    if (typeof sessionId !== "string" || !sessionId.trim()) {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Invalid Checkout Session ID",
+      );
+    }
 
-        sendResponse(res, {
-            statusCode: HTTP_STATUS.OK,
-            message: "Payment status retrieved successfully",
-            data: result,
-        });
-    },
+    const result = await paymentService.verifyCheckoutSession(
+      req.user.userId,
+      sessionId,
+    );
+
+    sendResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Payment status retrieved successfully",
+      data: result,
+    });
+  },
 );
 
 export const paymentVerificationController = {
-    verifyCheckoutSession,
+  verifyCheckoutSession,
 };

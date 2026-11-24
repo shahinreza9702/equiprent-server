@@ -1,4 +1,5 @@
-﻿import mongoose from "mongoose";
+﻿
+import mongoose from "mongoose";
 
 import Payment from "./payment.model.js";
 import getStripeClient from "./stripe.client.js";
@@ -123,8 +124,7 @@ const createCheckoutSession = async (
     equipment.rentalType,
   );
 
-  // Check quantities reserved by already approved bookings
-  // during the requested rental period.
+  // Check quantities reserved by already approved bookings.
   const overlappingBookings = await Booking.find({
     equipment: equipment._id,
     status: "approved",
@@ -322,9 +322,190 @@ const verifyCheckoutSession = async (
   };
 };
 
+// Owner earnings aggregation types.
+type OwnerEarningsTotal = {
+  _id: {
+    status: PaymentStatus;
+    fulfillmentStatus: PaymentFulfillmentStatus;
+    currency: string;
+  };
+  totalAmount: number;
+  count: number;
+};
+
+type OwnerMonthlyRevenue = {
+  _id: {
+    month: string;
+    currency: string;
+  };
+  totalAmount: number;
+  count: number;
+};
+
+type OwnerEarningsAggregation = {
+  totals: OwnerEarningsTotal[];
+  monthly: OwnerMonthlyRevenue[];
+};
+
+// Get earnings and payment transactions for the authenticated owner.
+const getOwnerEarnings = async (ownerId: string) => {
+  if (!mongoose.isValidObjectId(ownerId)) {
+    throw new ApiError(
+      HTTP_STATUS.UNAUTHORIZED,
+      "Invalid authenticated user",
+    );
+  }
+
+  const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+  const now = new Date();
+
+  const sixMonthsStart = new Date(
+    now.getFullYear(),
+    now.getMonth() - 5,
+    1,
+  );
+
+  const [aggregatedData, transactions] = await Promise.all([
+    Payment.aggregate<OwnerEarningsAggregation>([
+      {
+        $match: {
+          owner: ownerObjectId,
+        },
+      },
+      {
+        $facet: {
+          totals: [
+            {
+              $group: {
+                _id: {
+                  status: "$status",
+                  fulfillmentStatus: "$fulfillmentStatus",
+                  currency: "$currency",
+                },
+                totalAmount: { $sum: "$amount" },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          monthly: [
+            {
+              $match: {
+                status: "paid",
+                fulfillmentStatus: "fulfilled",
+                createdAt: { $gte: sixMonthsStart },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  month: {
+                    $dateToString: {
+                      format: "%Y-%m",
+                      date: "$createdAt",
+                    },
+                  },
+                  currency: "$currency",
+                },
+                totalAmount: { $sum: "$amount" },
+                count: { $sum: 1 },
+              },
+            },
+            {
+              $sort: {
+                "_id.month": 1,
+              },
+            },
+          ],
+        },
+      },
+    ]),
+    Payment.find({
+      owner: ownerObjectId,
+    })
+      .populate("customer", "name email avatar")
+      .populate("equipment", "name image")
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean(),
+  ]);
+
+  const totals: OwnerEarningsTotal[] = (
+    aggregatedData[0]?.totals ?? []
+  ) as OwnerEarningsTotal[];
+
+  const monthly: OwnerMonthlyRevenue[] = (
+    aggregatedData[0]?.monthly ?? []
+  ) as OwnerMonthlyRevenue[];
+
+  // Only successfully paid and fulfilled payments count as gross earnings.
+  const grossEarnings = totals
+    .filter(
+      (item: OwnerEarningsTotal) =>
+        item._id.status === "paid" &&
+        item._id.fulfillmentStatus === "fulfilled",
+    )
+    .map((item: OwnerEarningsTotal) => ({
+      currency: item._id.currency,
+      amount: item.totalAmount,
+      transactions: item.count,
+    }));
+
+  const currentMonth = `${now.getFullYear()}-${String(
+    now.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const thisMonthEarnings = monthly
+    .filter(
+      (item: OwnerMonthlyRevenue) =>
+        item._id.month === currentMonth,
+    )
+    .map((item: OwnerMonthlyRevenue) => ({
+      currency: item._id.currency,
+      amount: item.totalAmount,
+      transactions: item.count,
+    }));
+
+  // Prepare revenue data for the last six months.
+  const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(
+      now.getFullYear(),
+      now.getMonth() - 5 + index,
+      1,
+    );
+
+    const month = `${date.getFullYear()}-${String(
+      date.getMonth() + 1,
+    ).padStart(2, "0")}`;
+
+    return {
+      month,
+      revenue: monthly
+        .filter(
+          (item: OwnerMonthlyRevenue) =>
+            item._id.month === month,
+        )
+        .map((item: OwnerMonthlyRevenue) => ({
+          currency: item._id.currency,
+          amount: item.totalAmount,
+        })),
+    };
+  });
+
+  return {
+    summary: {
+      grossEarnings,
+      thisMonthEarnings,
+      paymentStatusTotals: totals,
+    },
+    monthlyRevenue,
+    transactions,
+  };
+};
+
 const paymentService = {
   createCheckoutSession,
   verifyCheckoutSession,
+  getOwnerEarnings,
 };
 
 export default paymentService;

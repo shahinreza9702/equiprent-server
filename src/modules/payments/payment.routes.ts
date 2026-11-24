@@ -1,4 +1,5 @@
-﻿import { Router } from "express";
+﻿
+import { Router } from "express";
 
 import { paymentController } from "./payment.controller.js";
 import { paymentVerificationController } from "./payment.verification.controller.js";
@@ -7,6 +8,14 @@ import authMiddleware from "../../middlewares/auth.middleware.js";
 import authorizeRoles from "../../middlewares/role.middleware.js";
 
 const router = Router();
+
+// Owner: Get earnings and payment transactions.
+router.get(
+  "/owner/earnings",
+  authMiddleware,
+  authorizeRoles("owner"),
+  paymentController.getOwnerEarnings,
+);
 
 // Customer: Create a Stripe Checkout Session.
 router.post(

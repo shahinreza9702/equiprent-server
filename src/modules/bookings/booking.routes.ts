@@ -8,14 +8,6 @@ import authorizeRoles from "../../middlewares/role.middleware.js";
 
 const router = Router();
 
-// Customer: Create a booking request
-router.post(
-  "/",
-  authMiddleware,
-  authorizeRoles("customer"),
-  bookingController.createBooking,
-);
-
 // Customer: Get own bookings
 router.get(
   "/my-bookings",

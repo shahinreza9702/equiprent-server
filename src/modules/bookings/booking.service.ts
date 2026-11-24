@@ -400,6 +400,22 @@ const updateBookingStatus = async (
         );
       }
 
+      // Only paid bookings can be processed by the equipment owner.
+      if (booking.paymentStatus !== "paid") {
+        throw new ApiError(
+          HTTP_STATUS.CONFLICT,
+          "Booking payment has not been completed",
+        );
+      }
+
+      // Do not reject paid bookings until refund processing is available.
+      if (payload.status === "rejected") {
+        throw new ApiError(
+          HTTP_STATUS.CONFLICT,
+          "Paid bookings cannot be rejected until refund processing is available",
+        );
+      }
+
       if (
         payload.status === "completed" &&
         booking.status !== "approved"
@@ -437,7 +453,13 @@ const updateBookingStatus = async (
         const overlappingBookings = await Booking.find({
           _id: { $ne: booking._id },
           equipment: booking.equipment,
-          status: "approved",
+          $or: [
+            { status: "approved" },
+            {
+              status: "pending",
+              paymentStatus: "paid",
+            },
+          ],
           startDate: { $lt: booking.endDate },
           endDate: { $gt: booking.startDate },
         })
@@ -497,6 +519,7 @@ const cancelBooking = async (
       _id: bookingId,
       customer: customerId,
       status: "pending",
+      paymentStatus: "pending",
     },
     {
       $set: {
@@ -510,15 +533,16 @@ const cancelBooking = async (
   );
 
   if (!booking) {
-    const existingBooking = await Booking.exists({
+    const existingPaidBooking = await Booking.exists({
       _id: bookingId,
       customer: customerId,
+      paymentStatus: "paid",
     });
 
-    if (!existingBooking) {
+    if (existingPaidBooking) {
       throw new ApiError(
-        HTTP_STATUS.NOT_FOUND,
-        "Booking not found",
+        HTTP_STATUS.CONFLICT,
+        "Paid bookings cannot be cancelled until refund processing is available",
       );
     }
 

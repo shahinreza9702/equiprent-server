@@ -1,4 +1,5 @@
-﻿import mongoose from "mongoose";
+﻿
+import mongoose from "mongoose";
 
 export const PAYMENT_STATUSES = [
   "pending",
@@ -17,6 +18,17 @@ export const PAYMENT_FULFILLMENT_STATUSES = [
 
 export type PaymentFulfillmentStatus =
   (typeof PAYMENT_FULFILLMENT_STATUSES)[number];
+
+export const PAYMENT_REFUND_STATUSES = [
+  "pending",
+  "requires_action",
+  "succeeded",
+  "failed",
+  "canceled",
+] as const;
+
+export type PaymentRefundStatus =
+  (typeof PAYMENT_REFUND_STATUSES)[number];
 
 export interface IPaymentBookingDetails {
   startDate: Date;
@@ -44,6 +56,9 @@ export interface IPayment {
 
   checkoutSessionId?: string;
   paymentIntentId?: string;
+
+  refundId?: string;
+  refundStatus?: PaymentRefundStatus;
 
   booking?: mongoose.Types.ObjectId;
 

@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 
 import healthRoutes from "../modules/health/health.routes.js";
 import usersRoutes from "../modules/users/users.routes.js";
@@ -8,6 +8,7 @@ import adminRoutes from "../modules/admin/admin.routes.js";
 import ownerApplicationRoutes from "../modules/owner-applications/owner-applications.routes.js";
 import bookingRoutes from "../modules/bookings/booking.routes.js";
 import favoriteRoutes from "../modules/favorites/favorite.routes.js";
+import paymentRoutes from "../modules/payments/payment.routes.js";
 
 const router = Router();
 
@@ -28,8 +29,12 @@ router.use("/owner-applications", ownerApplicationRoutes);
 
 // Booking Routes
 router.use("/bookings", bookingRoutes);
+
 // Favorite Routes
 router.use("/favorites", favoriteRoutes);
+
+// Payment Routes
+router.use("/payments", paymentRoutes);
 
 // Admin Routes
 router.use("/admin", adminRoutes);
